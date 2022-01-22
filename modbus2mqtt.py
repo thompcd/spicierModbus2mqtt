@@ -26,10 +26,11 @@
 # - pymodbus - https://github.com/riptideio/pymodbus
 
 import argparse
+from ast import arg
+from curses import baudrate
 import time
 import socket
 import paho.mqtt.client as mqtt
-import serial
 import io
 import sys
 import csv
@@ -47,7 +48,6 @@ from pymodbus.client.sync import ModbusTcpClient as TCPModbusClient
 from pymodbus.transaction import ModbusRtuFramer
 
 version="0.5"
-    
 parser = argparse.ArgumentParser(description='Bridge between ModBus and MQTT')
 parser.add_argument('--mqtt-host', default='localhost', help='MQTT server address. Defaults to "localhost"')
 parser.add_argument('--mqtt-port', default=None, type=int, help='Defaults to 8883 for TLS or 1883 for non-TLS')
@@ -58,13 +58,13 @@ parser.add_argument('--mqtt-use-tls', action='store_true', help='Use TLS')
 parser.add_argument('--mqtt-insecure', action='store_true', help='Use TLS without providing certificates')
 parser.add_argument('--mqtt-cacerts', default=None, help="Path to keychain including ")
 parser.add_argument('--mqtt-tls-version', default=None, help='TLS protocol version, can be one of tlsv1.2 tlsv1.1 or tlsv1')
-parser.add_argument('--rtu',help='pyserial URL (or port name) for RTU serial port')
+parser.add_argument('--rtu', default='/dev/tty.USB0',help='pyserial URL (or port name) for RTU serial port')
 parser.add_argument('--rtu-baud', default='19200', type=int, help='Baud rate for serial port. Defaults to 19200')
 parser.add_argument('--rtu-parity', default='even', choices=['even','odd','none'], help='Parity for serial port. Defaults to even')
 parser.add_argument('--tcp', help='Act as a Modbus TCP master, connecting to host TCP')
 parser.add_argument('--tcp-port', default='502', type=int, help='Port for MODBUS TCP. Defaults to 502')
 parser.add_argument('--set-modbus-timeout',default='1',type=float, help='Response time-out for MODBUS devices')
-parser.add_argument('--config', required=True, help='Configuration file. Required!')
+parser.add_argument('--config', default='example.csv', help='Configuration file. Required!')
 parser.add_argument('--verbosity', default='3', type=int, help='Verbose level, 0=silent, 1=errors only, 2=connections, 3=mb writes, 4=all')
 parser.add_argument('--autoremove',action='store_true',help='Automatically remove poller if modbus communication has failed three times. Removed pollers can be reactivated by sending "True" or "1" to topic modbus/reset-autoremove')
 parser.add_argument('--add-to-homeassistant',action='store_true',help='Add devices to Home Assistant using Home Assistant\'s MQTT-Discovery')
@@ -73,8 +73,14 @@ parser.add_argument('--set-loop-break',default='0.01',type=float, help='Set paus
 parser.add_argument('--diagnostics-rate',default='0',type=int, help='Time in seconds after which for each device diagnostics are published via mqtt. Set to sth. like 600 (= every 10 minutes) or so.')
 
 args=parser.parse_args()
+
+#KILL THIS HARDCODE DEBUG JUNK
+args.rtu = '/dev/tty.usbserial-FTUOBEFQ'
+args.rtu_baud = 9600
+
 verbosity=args.verbosity
 loopBreak=args.set_loop_break
+
 if loopBreak == 0:
     loopBreak = 0.01
     print("ERROR: Loop break must not be 0! Using default value (0.01) instead.")
@@ -795,7 +801,12 @@ modbus_connected = False
 while control.runLoop:
     if not modbus_connected:
         print("Connecting to MODBUS...")
-        modbus_connected = master.connect()
+        try:
+            modbus_connected = master.connect()
+        except:
+            modbus_connected = False
+            print("MODBUS errored while connecting")
+
         if modbus_connected:
             if verbosity >= 2:
                 print("MODBUS connected successfully")
@@ -853,5 +864,8 @@ while control.runLoop:
 
 master.close()
 #adder.removeAll(referenceList)
-sys.exit(1)
+try:
+    sys.exit(1)
+except:
+    print("bye")
 
