@@ -1,3 +1,12 @@
+# Fork of spicierModbus2mqtt - Modbus TCP/RTU to MQTT bridge (and vice versa)
+# https://github.com/mbs38/spicierModbus2mqtt 
+#
+# Forked in 2022 by Corey Thompson <corey.dwayne.thompson@gmail.com>
+# Main improvements over modbus2mqtt:
+# - add a database in place of csv configuration
+#
+# Provided under the terms of the MIT license.
+
 # spicierModbus2mqtt - Modbus TCP/RTU to MQTT bridge (and vice versa)
 # https://github.com/mbs38/spicierModbus2mqtt 
 #
@@ -24,6 +33,7 @@
 # Requires:
 # - Eclipse Paho for Python - http://www.eclipse.org/paho/clients/python/
 # - pymodbus - https://github.com/riptideio/pymodbus
+# - supabase
 
 import argparse
 from ast import arg
@@ -46,6 +56,9 @@ from pymodbus.pdu import ModbusRequest
 from pymodbus.client.sync import ModbusSerialClient as SerialModbusClient
 from pymodbus.client.sync import ModbusTcpClient as TCPModbusClient
 from pymodbus.transaction import ModbusRtuFramer
+
+import os
+from supabase import create_client, Client
 
 version="0.5"
 parser = argparse.ArgumentParser(description='Bridge between ModBus and MQTT')
@@ -77,6 +90,22 @@ args=parser.parse_args()
 #KILL THIS HARDCODE DEBUG JUNK
 args.rtu = '/dev/tty.usbserial-FTUOBEFQ'
 args.rtu_baud = 9600
+args.mqtt_host = 'https://test.mosquitto.org'
+args.mqtt_port = 1883
+
+url = os.environ.get("TEST_SITE_URL")
+key = os.environ.get("TEST_ANON_KEY")
+
+supabase: Client = create_client(url, key)
+
+random_email: str = "corey.dwayne.thompson@gmail.com"
+random_password: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQyOTQxODUwLCJleHAiOjE5NTg1MTc4NTB9.0GqxdIDLwnZ4yWmJrDOlh36ktyEFioTRjuNwh9wD5G0"
+# user = supabase.auth.sign_up(email=random_email, password=random_password)
+user = supabase.auth.sign_in(email=random_email)
+
+data = supabase.table("pollers").select("*").execute()
+# Assert we pulled real data.
+assert len(data.get("data", [])) > 0
 
 verbosity=args.verbosity
 loopBreak=args.set_loop_break

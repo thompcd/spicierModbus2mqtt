@@ -170,6 +170,13 @@ to a register:
 
 mosquitto_pub -h <mqtt broker> -t modbus/somePoller/set/someReference -m "12346"
 
+Troubleshooting
+------------------------------------------------
+Ensure all ports listed in the docker compose file are cleared.
+
+MacOs Monterrey will use localhost port 5000 by default. Remap in docker-compose.yml or disable AirplayReceiver in sharing for storage to function.
+https://developer.apple.com/forums/thread/682332
+
 Scripts addToHomeAssistant.py and create-openhab-conf.py
 ------------------------------------------------
 These scripts are not really part of this project, but I decided to include them anyway. They were written because I grew more and more frustrated with the Modbus capabilities of OpenHAB and Home Assistant.
